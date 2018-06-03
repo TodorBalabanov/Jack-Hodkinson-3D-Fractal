@@ -220,7 +220,7 @@ public class Main {
 
 		// TODO Try different genetic algorithm parameters.
 		GeneticAlgorithm optimizer = new GeneticAlgorithm(new UniformCrossover<TransitionsChromosome>(0.5), 0.9,
-				new TransitionsMutation(COLORS), 0.1, new TournamentSelection(2));
+				new TransitionsMutation(COLORS), 0.01, new TournamentSelection(2));
 
 		/*
 		 * Run optimization.
