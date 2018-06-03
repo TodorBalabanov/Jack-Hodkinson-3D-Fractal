@@ -262,4 +262,32 @@ public class TransitionsChromosome extends AbstractListChromosome<Long> {
 	public List<Long> getRepresentation() {
 		return super.getRepresentation();
 	}
+
+	/**
+	 * Obtain solution shape.
+	 * 
+	 * @return Finite 3D space with solution shape.
+	 */
+	public long[][][] getShape() {
+		/*
+		 * Copy the start state.
+		 */
+		end = new long[start.length][][];
+		for (int x = 0; x < start.length; x++) {
+			end[x] = new long[start[x].length][];
+			for (int y = 0; y < start[x].length; y++) {
+				end[x][y] = new long[start[x][y].length];
+				for (int z = 0; z < start[x][y].length; z++) {
+					end[x][y][z] = start[x][y][z];
+				}
+			}
+		}
+
+		/**
+		 * Generate fractal.
+		 */
+		substitute(depth, 0, start.length - 1, 0, start[0].length - 1, 0, start[0][0].length - 1);
+
+		return end;
+	}
 }

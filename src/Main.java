@@ -1,8 +1,10 @@
+import java.awt.Color;
+import java.io.File;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.commons.math3.genetics.BinaryMutation;
 import org.apache.commons.math3.genetics.Chromosome;
 import org.apache.commons.math3.genetics.ElitisticListPopulation;
 import org.apache.commons.math3.genetics.FixedElapsedTime;
@@ -10,6 +12,14 @@ import org.apache.commons.math3.genetics.GeneticAlgorithm;
 import org.apache.commons.math3.genetics.Population;
 import org.apache.commons.math3.genetics.TournamentSelection;
 import org.apache.commons.math3.genetics.UniformCrossover;
+
+import eu.printingin3d.javascad.context.ColorHandlingContext;
+import eu.printingin3d.javascad.coords.Coords3d;
+import eu.printingin3d.javascad.coords.Dims3d;
+import eu.printingin3d.javascad.models.Abstract3dModel;
+import eu.printingin3d.javascad.models.Cube;
+import eu.printingin3d.javascad.tranzitions.Colorize;
+import eu.printingin3d.javascad.utils.ModelToFile;
 
 /**
  * Application single entry class.
@@ -22,6 +32,22 @@ public class Main {
 	 * Pseudo-random number generator.
 	 */
 	private static final Random PRNG = new Random();
+
+	/**
+	 * Single voxel cube size scale.
+	 */
+	private static final double VOXEL_SCALE = 1.0;
+
+	/**
+	 * Space between two voxels. If it is negative there is space, if it is positive
+	 * there is overlap.
+	 */
+	private static final double VOXEL_DELTA = 0.001;
+
+	/**
+	 * Single voxel cube side.
+	 */
+	private static final double VOXEL_SIDE = VOXEL_SCALE + VOXEL_DELTA;
 
 	/**
 	 * How many levels of recursion will be applied.
@@ -92,6 +118,7 @@ public class Main {
 					}
 
 					space[x][y][z] = MOST_INTENSIVE_RGB;
+					// space[x][y][z] = PRNG.nextInt(0xF000000);
 				}
 			}
 		}
@@ -134,16 +161,48 @@ public class Main {
 	}
 
 	/**
+	 * Transform voxels to 3D model in order to be saved as STL.
+	 * 
+	 * @return Complex 3D model.
+	 */
+	private static Abstract3dModel voxelsToModel(long voxels[][][]) {
+		Abstract3dModel model = new Cube(new Dims3d(voxels.length, voxels[0].length, voxels[0][0].length));
+
+		boolean first = true;
+		for (int x = 0; x < voxels.length; x++) {
+			for (int y = 0; y < voxels[x].length; y++) {
+				for (int z = 0; z < voxels[x][y].length; z++) {
+					if (voxels[x][y][z] == EMPTY_RGB) {
+						continue;
+					}
+
+					if (first == true) {
+						model = new Colorize(new Color((int) voxels[x][y][z]), new Cube(VOXEL_SIDE)
+								.move(new Coords3d(x * VOXEL_SCALE, y * VOXEL_SCALE, z * VOXEL_SCALE)));
+						first = false;
+					} else {
+						model = model.addModel(new Colorize(new Color((int) voxels[x][y][z]), new Cube(VOXEL_SIDE))
+								.move(new Coords3d(x * VOXEL_SCALE, y * VOXEL_SCALE, z * VOXEL_SCALE)));
+					}
+				}
+			}
+		}
+
+		return model;
+	}
+
+	/**
 	 * Application single entry point method.
 	 * 
 	 * @param args
 	 *            Command line arguments.
+	 * @throws IOException
+	 *             It is thrown if there is a problem with scene saving in a file.
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		long start[][][] = new long[(int) Math.pow(3, RECURSION_DEPTH)][(int) Math.pow(3, RECURSION_DEPTH)][(int) Math
 				.pow(3, RECURSION_DEPTH)];
 		clear(start);
-
 		sphere(target);
 
 		/*
@@ -171,6 +230,13 @@ public class Main {
 		/*
 		 * Obtain result.
 		 */
-		System.out.println(((TransitionsChromosome) optimized.getFittestChromosome()).getRepresentation());
+		long[][][] result = ((TransitionsChromosome) optimized.getFittestChromosome()).getShape();
+
+		/*
+		 * Many voxels to SCAD file storage.
+		 */ {
+			ModelToFile out = new ModelToFile(new File("./bin/scene" + System.currentTimeMillis() + ".scad"));
+			out.addModel(voxelsToModel(result)).saveToFile(ColorHandlingContext.DEFAULT);
+		}
 	}
 }
